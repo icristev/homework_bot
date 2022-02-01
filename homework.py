@@ -38,10 +38,10 @@ JSON_ERROR = 'Отказ обслуживания. {0}, {1}, {2}, {3}, {4}'
 STATUS_FAIL = 'Статус {0} не найден.'
 CHECK_TOKENS_ERROR = 'Запуск программы невозможен.'
 MESSAGE_SUCCESS = 'Сообщение {0} отправлено!'
-RESPONSE_TYPE_FAIL = 'Неверный тип для homeworks. Тип: {0}'
+TYPE_FAIL = 'Неверный тип для homeworks. Тип: {0}'
 EMPTY_LIST = 'Работ нет.'
 MISSING_TOKENS = 'Нет токенов: {0}.'
-RESPONSE_KEY_FAIL = 'Не обнаружен ключ homeworks!'
+KEY_FAIL = 'Не обнаружен ключ homeworks!'
 PROGRAMM_ERROR = 'Сбой в работе программы: {0}'
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -84,9 +84,9 @@ def check_response(response):
     try:
         homeworks = response['homeworks']
     except KeyError:
-        raise KeyError(RESPONSE_KEY_FAIL)
+        raise KeyError(KEY_FAIL)
     if not isinstance(homeworks, list):
-        raise TypeError(RESPONSE_TYPE_FAIL.format(type(homeworks)))
+        raise TypeError(TYPE_FAIL.format(type(homeworks)))
     if not homeworks:
         logger.info(EMPTY_LIST)
     return homeworks
