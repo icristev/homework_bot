@@ -93,26 +93,15 @@ def check_response(response):
     return homeworks
 
 
-def parse_status(last_homework):
-    """Проверка статуса домашней работы."""
-    logging.info('Проверка статуса домашней работы.')
-    status = last_homework.get('status')
-    homework_name = last_homework.get('homework_name')
-    if status is None:
-        error_msg = MESSAGE_FAIL.format(error='нет значения status')
-        logging.error(error_msg)
-        raise WrongStatus(error_msg)
-    if last_homework is None:
-        error_msg = MESSAGE_FAIL.format(
-            error='нет значения homework_name')
-        logging.error(error_msg)
-        raise WrongStatus(error_msg)
-    status_from_dict = HOMEWORK_STATUSES[status]
-    send_status = ('Изменился статус '
-                   'проверки работы "{}". {}'.format(
-                       homework_name, status_from_dict))
-    logging.info(send_status)
-    return (send_status)
+def parse_status(homework):
+    """Извлечение статуса."""
+    homework_name = homework.get('homework_bot', None)
+    status = homework['status']
+    if status in HOMEWORK_STATUSES:
+        return HOMEWORK_STATUSES.format(f'Изменился статус проверки'
+                                        f'работы"{homework_name}"',
+                                        HOMEWORK_STATUSES[status])
+    raise ValueError(STATUS_FAIL.format(status))
 
 
 def check_tokens():
