@@ -94,14 +94,21 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Извлечение статуса."""
-    homework_name = homework.get('homework_bot', None)
-    status = homework['status']
-    if status in HOMEWORK_STATUSES:
-        return HOMEWORK_STATUSES.format(f'Изменился статус проверки'
-                                        f'работы"{homework_name}"',
-                                        HOMEWORK_STATUSES[status])
-    raise ValueError(STATUS_FAIL.format(status))
+    """Проверка на изменение статуса."""
+    keys = ['status', 'homework_name']
+    for key in keys:
+        if key not in homework:
+            message = f'Ключ {key} отсутствует.'
+            logger.error(message)
+            raise KeyError(message)
+    homework_status = homework['status']
+    if homework_status not in HOMEWORK_STATUSES:
+        message = 'Неизвестный статус домашней работы в ответе API'
+        logger.error(message)
+        raise KeyError(message)
+    homework_name = homework['homework_name']
+    verdict = HOMEWORK_STATUSES[homework_status]
+    return f'Изменился статус проверки работы "{homework_name}" - {verdict}'
 
 
 def check_tokens():
