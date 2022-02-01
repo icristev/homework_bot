@@ -1,5 +1,5 @@
 class WrongStatus(Exception):
-    """ Оневерный статус """
+    """ Неверный статус """
     pass
 
 
