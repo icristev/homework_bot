@@ -95,7 +95,7 @@ def check_response(response):
 
 def parse_status(homework):
     """Извлечение статуса."""
-    homework_name = homework.get('homework_name', None)
+    homework_name = homework.get('homework_bot', None)
     status = homework['status']
     if status in HOMEWORK_STATUSES:
         return HOMEWORK_STATUS.format(homework_name, HOMEWORK_STATUSES[status])
