@@ -48,6 +48,7 @@ logger.addHandler(logging.StreamHandler())
 
 
 def send_message(bot, message):
+    """Отправка сообщния."""
     try:
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info(MESSAGE_SUCCESS.format(message))
@@ -56,7 +57,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """Запрос API Практикума """
+    """Запрос API Практикума."""
     params = {'from_date': current_timestamp}
     try:
         response = requests.get(ENDPOINT,
@@ -80,7 +81,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """ ответ """
+    """Ответ."""
     try:
         homeworks = response['homeworks']
     except KeyError:
@@ -102,7 +103,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """ Доступность токенов """
+    """Доступность токенов."""
     lost_tokens = [token for token in TOKENS if globals()[token] is None]
     if lost_tokens:
         logger.error(MISSING_TOKENS.format(lost_tokens))
