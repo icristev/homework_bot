@@ -1,8 +1,3 @@
-class WrongStatus(Exception):
-    """ Неверный статус """
-    pass
-
-
-class JsonError(Exception):
-    """ Ошибка JSON """
+class NoResponseError(Exception):
+    """ Ошибка получения ответа """
     pass
