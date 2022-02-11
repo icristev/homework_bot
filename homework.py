@@ -7,7 +7,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import NoResponseError
+from exceptions import NoResponseError, VerdictError
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -16,18 +16,21 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
+LIST_TOKENS = [PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID]
+
 TOKENS = {
     'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
     'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
     'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID
 }
-TIMEOUT = 10
+
+TIMEOUT = 5
 RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 ERROR = 'Ошибка: {0}'
 
-HOMEWORK_STATUSES = {
+VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -36,29 +39,41 @@ HOMEWORK_STATUSES = {
 
 def send_message(bot, message):
     """Отправить сообщение."""
-    return bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    try:
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
+    except telegram.TelegramError as error:
+        logger.exception(f'Сообщение {message} не отправлено: {error}')
 
 
 def get_api_answer(current_timestamp):
     """Проверка доступности API Яндекс.Практикума."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS,
-                            params=params, timeout=TIMEOUT)
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS,
+                                params=params, timeout=TIMEOUT)
+    except requests.RequestException as exception:
+        raise ConnectionError(f'Ошибка сервера. {exception},'
+                              f'URL{ENDPOINT}, HEADERS, params, TIMEOUT')
+
     if response.status_code != HTTPStatus.OK:
         error = ERROR.format(error=response.status_code)
         logging.error(error)
         raise NoResponseError(error)
-    answer = response.json()
+    try:
+        answer = response.json() or None
+    except ValueError:
+        error = 'Сервер вернул пустой ответ'
+        logger.error(error)
     return answer
 
 
 def check_response(response):
     """Проверка наличия и статуса домашней работы."""
-    homeworks = response['homeworks']
-    if homeworks is None:
-        msg = 'Домашняя работа отсутствует'
-        logger.error(msg)
+    try:
+        homeworks = response['homeworks']
+    except KeyError:
+        raise KeyError('Нет ключа homeworks')
     if not isinstance(homeworks, list):
         msg = 'Ответ API должен быть списком!'
         logger.error(msg)
@@ -70,23 +85,29 @@ def parse_status(homework):
     """Проверка изменения статуса домашней работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
-    verdict = HOMEWORK_STATUSES[homework_status]
-    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    msg = 'Такого статуса домашней работы не сущетвует'
+    if homework_status not in VERDICTS:
+        logger.error(msg)
+        raise KeyError(msg)
+    verdict = VERDICTS[homework_status]
+    if homework_status in VERDICTS:
+        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    raise VerdictError(msg)
 
 
 def check_tokens():
     """Провека переменных окружения."""
-    no_tokens = [token for token in TOKENS if globals()[token] is None]
-    if no_tokens:
-        logger.error('Токены отсутствуют')
-        return False
-    return True
+    tokens = all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
+    if tokens:
+        return True
+    return False
 
 
 def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     time_now = int(time.time())
+    msg = 'Ошибка: программа не работает'
     while True:
         try:
             response = get_api_answer(time_now)
@@ -96,8 +117,12 @@ def main():
             time_now = response.get(
                 'current_date', time_now)
         except Exception as error:
-            logger.error('Ошибка: программа не работает', error)
-            send_message(bot, 'Ошибка: программа не работает', error)
+            a = logger.error(msg, error)
+            b = send_message(bot, msg, error)
+            if a == b:
+                return b
+            else:
+                return a, b
         time.sleep(RETRY_TIME)
 
 
