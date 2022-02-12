@@ -102,7 +102,7 @@ def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     time_now = int(time.time())
-    msg = 'Ошибка: программа не работает'
+    msg = 'Ошибка: программа не работает '
     if not check_tokens():
         raise RuntimeError('Ошибка, связанная с токенами')
     while True:
@@ -114,12 +114,11 @@ def main():
             time_now = response.get(
                 'current_date', time_now)
         except Exception as error:
-            log = logger.error(msg, error)
-            message = send_message(bot, msg, error)
-            if log == message:
-                message
-            else:
-                log, message
+            logging.exception(msg)
+            try:
+                send_message(bot, msg, error)
+            except Exception as error:
+                logging.exception(f'Ошибка при отправке сообщения: {error}')
         time.sleep(RETRY_TIME)
 
 
