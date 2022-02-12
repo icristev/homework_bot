@@ -7,7 +7,7 @@ import requests
 import telegram
 from dotenv import load_dotenv
 
-from exceptions import NoResponseError, VerdictError
+from exceptions import NoResponseError
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -84,21 +84,18 @@ def parse_status(homework):
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     msg = 'Такого статуса домашней работы не сущетвует'
+    verdict = VERDICTS[homework_status]
     if homework_status not in VERDICTS:
         logger.error(msg)
         raise KeyError(msg)
-    verdict = VERDICTS[homework_status]
-    if homework_status in VERDICTS:
+    else:
         return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-    raise VerdictError(msg)
 
 
 def check_tokens():
     """Провека переменных окружения."""
     tokens = all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
-    if tokens:
-        return True
-    return False
+    return tokens
 
 
 def main():
@@ -106,6 +103,8 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     time_now = int(time.time())
     msg = 'Ошибка: программа не работает'
+    if not check_tokens():
+        raise RuntimeError('Ошибка, связанная с токенами')
     while True:
         try:
             response = get_api_answer(time_now)
@@ -115,12 +114,12 @@ def main():
             time_now = response.get(
                 'current_date', time_now)
         except Exception as error:
-            a = logger.error(msg, error)
-            b = send_message(bot, msg, error)
-            if a == b:
-                return b
+            log = logger.error(msg, error)
+            message = send_message(bot, msg, error)
+            if log == message:
+                message
             else:
-                return a, b
+                log, message
         time.sleep(RETRY_TIME)
 
 
