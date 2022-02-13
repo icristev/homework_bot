@@ -88,8 +88,7 @@ def parse_status(homework):
     if homework_status not in VERDICTS:
         logger.error(msg)
         raise KeyError(msg)
-    else:
-        return f'Изменился статус проверки работы "{homework_name}". {verdict}'
+    return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens():
@@ -105,6 +104,7 @@ def main():
     msg = 'Ошибка: программа не работает '
     if not check_tokens():
         raise RuntimeError('Ошибка, связанная с токенами')
+    errors = ''
     while True:
         try:
             response = get_api_answer(time_now)
@@ -114,12 +114,13 @@ def main():
             time_now = response.get(
                 'current_date', time_now)
         except Exception as error:
-            logging.exception(msg)
-            try:
+            logging.error(msg)
+            # Защита от дублей.
+            if msg not in errors:
                 send_message(bot, msg, error)
-            except Exception as error:
-                logging.exception(f'Ошибка при отправке сообщения: {error}')
-        time.sleep(RETRY_TIME)
+                errors.append(msg)
+            logger.info('Сообщение об ошибке!')
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
