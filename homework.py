@@ -120,7 +120,7 @@ def main():
                 send_message(bot, msg, error)
                 errors.append(msg)
             logger.info('Сообщение об ошибке!')
-            time.sleep(RETRY_TIME)
+        time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
