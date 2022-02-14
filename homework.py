@@ -104,7 +104,7 @@ def main():
     msg = 'Ошибка: программа не работает '
     if not check_tokens():
         raise RuntimeError('Ошибка, связанная с токенами')
-    errors = ''
+    errors = []
     while True:
         try:
             response = get_api_answer(time_now)
